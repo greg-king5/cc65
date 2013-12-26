@@ -18,16 +18,31 @@
 
 
 ;----------------------------------------------------------------------------
-.code
 
 .proc   _clock_gettime
 
         jsr     pushax
         jsr     pushax
 
+; Get the hour, and freeze the output registers (the time components will stay
+; co-ordinated).
+
         jsr     sys_bank
         ldy     #CIA::TODHR
         lda     (cia2),y
+        tax
+        lda     #0
+        cpx     #$12                    ; Shift 12 AM to zero
+        beq     is0
+
+; Convert from 12-hour format to 24-hour format.
+
+        txa
+        bpl     AM
+        and     #%01111111
+        cmp     #$12                    ; Don't shift 12 PM
+        beq     AM
+; XXX -- Ollie's bad code?
         sed
         tax                     ; Save PM flag
         and     #%01111111
@@ -39,8 +54,9 @@
         clc
         adc     #$12
 @L2:    cld
-        jsr     BCD2dec
-        sta     TM + tm::tm_hour
+; XXX -- End of Ollie's code.
+AM:     jsr     BCD2dec
+is0:    sta     TM + tm::tm_hour
         ldy     #CIA::TODMIN
         lda     (cia2),y
         jsr     BCD2dec

@@ -1,6 +1,7 @@
 ;
-; Stefan Haubenthal, 27.7.2009
-; Oliver Schmidt, 14.8.2018
+; 2009-07-27, Stefan Haubenthal
+; 2013-12-26, Greg King
+; 2018-08-14, Oliver Schmidt
 ;
 ; int __fastcall__ clock_gettime (clockid_t clk_id, struct timespec *tp);
 ;
@@ -14,14 +15,26 @@
 
 
 ;----------------------------------------------------------------------------
-.code
 
 .proc   _clock_gettime
 
         jsr     pushax
         jsr     pushax
 
-        lda     CIA1_TODHR
+; Get the hour, and freeze the output registers (the time components will stay
+; co-ordinated).
+        ldx     CIA1_TODHR
+        lda     #0
+        cpx     #$12                    ; Shift 12 AM to zero
+        beq     is0
+
+; Convert from 12-hour format to 24-hour format.
+        txa
+        bpl     AM
+        and     #%01111111
+        cmp     #$12                    ; Don't shift 12 PM
+        beq     AM
+; XXX -- Ollie's bad code?
         sed
         tax                     ; Save PM flag
         and     #%01111111
@@ -33,8 +46,9 @@
         clc
         adc     #$12
 @L2:    cld
-        jsr     BCD2dec
-        sta     TM + tm::tm_hour
+; XXX -- End of Ollie's code.
+AM:     jsr     BCD2dec
+is0:    sta     TM + tm::tm_hour
         lda     CIA1_TODMIN
         jsr     BCD2dec
         sta     TM + tm::tm_min

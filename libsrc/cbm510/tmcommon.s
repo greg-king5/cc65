@@ -1,10 +1,9 @@
 ;
+; 2013-12-26, Greg King
 ; Oliver Schmidt, 16.8.2018
 ;
 ; Common stuff for the clock routines
 ;
-
-        .include        "cbm510.inc"
 
         .export         TM, load_tenth
 
@@ -30,12 +29,12 @@
 ; TM struct with date set to 1970-01-01
 .data
 
-TM:     .word           0       ; tm_sec
-        .word           0       ; tm_min
-        .word           0       ; tm_hour
-        .word           1       ; tm_mday
-        .word           0       ; tm_mon
-        .word           70      ; tm_year
-        .word           0       ; tm_wday
-        .word           0       ; tm_yday
-        .word           0       ; tm_isdst
+TM:     .word   0               ; tm_sec
+        .word   0               ; tm_min
+        .word   0               ; tm_hour
+        .word   1               ; tm_mday
+        .word   1 - 1           ; tm_mon
+        .word   1970 - 1900     ; tm_year
+        .word   0               ; tm_wday
+        .word   0               ; tm_yday
+        .word   .loword(-1)     ; tm_isdst
