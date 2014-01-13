@@ -56,7 +56,15 @@
 @L2:    cld
 ; XXX -- End of Ollie's code.
 AM:     jsr     BCD2dec
-is0:    sta     TM + tm::tm_hour
+is0:    cmp     TM + tm::tm_hour
+        bcs     today
+
+; The new time is less than the old time; therefore, the clock must have gone
+; past midnight.  Add 24 hours; mktime() will correct the hour and the date.
+
+        ;clc
+        adc     #24
+today:  sta     TM + tm::tm_hour
         ldy     #CIA::TODMIN
         lda     (cia),y
         jsr     BCD2dec
