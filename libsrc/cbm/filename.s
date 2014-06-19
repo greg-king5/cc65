@@ -1,5 +1,6 @@
 ;
 ; Ullrich von Bassewitz, 16.11.2002
+; 2014-05-19, Greg King
 ;
 ; File name handling for CBM file I/O
 ;
@@ -196,7 +197,6 @@ fnunit:         .res    1
 fnlen:          .res    1
 fnisfile:       .res    1       ; Flags standard file (as opposed to "$")
 
-.data
-fncmd:          .byte   's'     ; Use as scratch command
+fncmd:          .res    1       ; Command letter
 fnbuf:          .res    35      ; Either 0:0123456789012345,t,m
                                 ; Or     0:0123456789012345=0123456789012345

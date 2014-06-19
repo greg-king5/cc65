@@ -1,5 +1,6 @@
 ;
 ; Ullrich von Bassewitz, 2002-11-17, 2009-02-22
+; 2014-07-15, Greg King
 ;
 ; Handle disk command channels
 ;
@@ -165,11 +166,12 @@ readdiskerror:
         rts
 
 ;--------------------------------------------------------------------------
-; writefndiskcmd: Write the contents of fncmd to the command channel of the
-; drive in fnunit. Returns an error code in A, flags are set according to
-; the contents of A.
+; writefncmd: Put the content of A into fncmd; then, write that command to
+; the drive in fnunit. Returns an error code in A, flags are set according
+; to the content of A.
 
 writefndiskcmd:
+        sta     fncmd
         lda     #<fncmd
         sta     ptr1
         lda     #>fncmd

@@ -4,8 +4,8 @@
 
         .export         diskinit
         .import         opencmdchannel, closecmdchannel
-        .import         writefndiskcmd, readdiskerror
-        .import         isdisk, fnunit, fncmd
+        .import         writefncmd, readdiskerror
+        .import         isdisk, fnunit, fnlen
 
 ;------------------------------------------------------------------------------
 ; diskinit
@@ -31,9 +31,10 @@ open:   jsr     opencmdchannel
 
 ; Write command
 
-        lda     #'i'            ; Init command
-        sta     fncmd
-        jsr     writefndiskcmd
+        ldx     #0
+        stx     fnlen
+        lda     #'i'            ; the Initiate command
+        jsr     writefncmd
         bne     close
 
 ; Read error
