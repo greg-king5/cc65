@@ -5,7 +5,9 @@
 ;
 
         .export         _cgetc
+
         .import         cursor
+        .forceimport    keys_repeat
 
         .include        "cbm_kernal.inc"
         .include        "vic20.inc"
