@@ -291,6 +291,7 @@ function.
 <item><ref id="kbhit" name="kbhit">
 <item><ref id="revers" name="revers">
 <item><ref id="screensize" name="screensize">
+<item><ref id="scrollscr" name="scrollscr">
 <item><ref id="textcolor" name="textcolor">
 <item><ref id="vcprintf" name="vcprintf">
 <item><ref id="wherex" name="wherex">
@@ -6327,6 +6328,26 @@ be used in presence of a prototype.
 <ref id="gotoy" name="gotoy">,
 <ref id="wherex" name="wherex">,
 <ref id="wherey" name="wherey">
+<tag/Example/None.
+</descrip>
+</quote>
+
+
+<sect1>scrollscr<label id="scrollscr"><p>
+
+<quote>
+<descrip>
+<tag/Function/Move the screen text up by one line.
+<tag/Header/<tt/<ref id="conio.h" name="conio.h">/
+<tag/Declaration/<tt/void scrollscr (void);/
+<tag/Description/The function moves the displayed text (including color) up by
+one line.  It clears the bottom line.  The cursor also is moved, so that it
+continues to point to the same character as before the move.
+<tag/Availability/cc65
+<tag/See also/
+<ref id="cprintf" name="cprintf">,
+<ref id="cputc" name="cputc">,
+<ref id="cputs" name="cputs">
 <tag/Example/None.
 </descrip>
 </quote>

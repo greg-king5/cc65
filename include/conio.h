@@ -104,6 +104,11 @@ int cprintf (const char* format, ...);
 int __fastcall__ vcprintf (const char* format, va_list ap);
 /* Like vprintf(), but uses direct screen output */
 
+void scrollscr (void);
+/* Move the display screen's text up one line.  The bottom line is cleared.
+** The cursor also is moved up by one line (it stays in the same column).
+*/
+
 char cgetc (void);
 /* Return a character from the keyboard. If there is no character available,
 ** the function waits until the user does press a key. If cursor is set to

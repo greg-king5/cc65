@@ -9,10 +9,9 @@
 ;
 ; Internal function for screensize()
 ;
-.macro  osi_screensize ScrWidth, ScrHeight
-                                ; Macro implementation of internal screensize
-                                ; function for given width and height in
-                                ; characters
+.macro  osi_screensize  ScrWidth, ScrHeight
+        ; Macro implementation of internal screensize function
+        ; for given width and height in characters
 
         .export         screensize
 
@@ -26,7 +25,7 @@
 ;
 ; void clrscr (void);
 ;
-.macro  osi_clrscr ScrBase, ScrRamSize
+.macro  osi_clrscr      ScrBase, ScrRamSize
 
         .export         _clrscr
 
@@ -47,22 +46,16 @@
         sta     CURS_X
         sta     CURS_Y
 
-        jmp     plot            ; Set the cursor position
+        beq     plot            ; Set the cursor position
 .endproc
-
 .endmacro
 
 ;
 ; cputc/cputcxy for Challenger 1P
 ; Based on PET/CBM implementation
 ;
-
-.macro  osi_cputfuncs ScrBase, ScrFirstChar, ScrWidth, ScrHeight, \
-                         ScrollDist, ScrLo, ScrHi
-
-                                ; Number of characters to move for scrolling
-                                ; by one line
-ScrollLength    = (ScrHeight - 1) * ScrollDist
+.macro  osi_cputfuncs   ScrBase, ScrFirstChar, ScrWidth, ScrHeight, \
+                        ScrollDist, ScrLo, ScrHi
 
 ;
 ; void cputcxy (unsigned char x, unsigned char y, char c);
@@ -80,7 +73,7 @@ _cputcxy:
 
 _cputc: cmp     #$0A            ; CR?
         bne     L1
-        lda     #0
+        lda     #$00
         sta     CURS_X
         beq     plot            ; Recalculate pointers
 
@@ -96,45 +89,13 @@ cputdirect:
         cpy     #(ScrWidth - 1) ; Check whether line is full
         bne     L3
         jsr     newline         ; New line
-        ldy     #$FF            ; + cr
+        ldy     #<-1            ; + cr
 L3:     iny
         sty     CURS_X
         rts
 
 newline:
         inc     CURS_Y
-        lda     CURS_Y
-        cmp     #ScrHeight      ; Screen height
-        bne     plot
-        dec     CURS_Y          ; Bottom of screen reached, scroll
-
-                                ; Scroll destination address
-        lda     #<(ScrBase + ScrFirstChar)
-        ldx     #>(ScrBase + ScrFirstChar)
-        jsr     pushax
-
-                                ; Scroll source address
-        lda     #<(ScrBase + ScrFirstChar + ScrollDist)
-        ldx     #>(ScrBase + ScrFirstChar + ScrollDist)
-        jsr     pushax
-
-                                ; Number of characters to move
-        lda     #<ScrollLength
-        ldx     #>ScrollLength
-        jsr     _memmove
-
-                                ; Address of first character in last line
-                                ; of screen
-        lda     #<(ScrBase + ScrFirstChar + ScrollLength)
-        sta     ptr1
-        lda     #>(ScrBase + ScrFirstChar + ScrollLength)
-        sta     ptr1+1
-
-        ldy     #ScrWidth       ; Fill last line with blanks
-        lda     #' '
-clrln:  sta     (ptr1),y
-        dey
-        bpl     clrln
 
 plot:   ldy     CURS_Y
         lda     ScrLo,y
@@ -150,35 +111,79 @@ putchar:
         ldy     CURS_X
         sta     (SCREEN_PTR),y  ; Set char
         rts
+.endmacro
 
+;
+; void scrollscr (void);
+;
+.macro  osi_scroll      ScrBase, ScrFirstChar, ScrWidth, ScrHeight, ScrollDist
+
+; Number of characters to move, for scrolling by one line
+ScrollLength    = (ScrHeight - 1) * ScrollDist
+
+        .export         _scrollscr
+
+.proc   _scrollscr
+        dec     CURS_Y          ; Cursor position, also, goes up
+        bpl     nottop
+        inc     CURS_Y          ; But, it must stay on the screen
+
+        ; Scroll destination address
+nottop: lda     #<(ScrBase + ScrFirstChar)
+        ldx     #>(ScrBase + ScrFirstChar)
+        jsr     pushax
+
+        ; Scroll source address
+        lda     #<(ScrBase + ScrFirstChar + ScrollDist)
+        ldx     #>(ScrBase + ScrFirstChar + ScrollDist)
+        jsr     pushax
+
+        ; Number of characters to move
+        lda     #<ScrollLength
+        ldx     #>ScrollLength
+        jsr     _memcpy
+
+        ; Address of first character in last line of screen
+        lda     #<(ScrBase + ScrFirstChar + ScrollLength)
+        ldx     #>(ScrBase + ScrFirstChar + ScrollLength)
+        sta     ptr1
+        stx     ptr1+1
+
+        ldy     #ScrWidth       ; Fill last line with blanks
+        lda     #' '
+clrln:  sta     (ptr1),y
+        dey
+        bpl     clrln
+        bmi     plot            ; Branch always
+.endproc
 .endmacro
 
 .macro osi_screen_funcs ScrBase, ScrRamSize, ScrFirstChar, \
                         ScrWidth, ScrHeight, ScrollDist
 
         .import         gotoxy
-        .import         _memmove, _memset, pushax
+        .import         _memcpy, _memset, pushax
         .importzp       ptr1
 
 .rodata
 
-; Screen address tables - offset to real screen
+; Screen address tables -- location of each row
 ScrTabLo:
         .repeat ScrHeight, I
-        .byte <(ScrBase + ScrFirstChar + I * ScrollDist)
+        .byte   <(ScrBase + ScrFirstChar + I * ScrollDist)
         .endrep
 
 ScrTabHi:
         .repeat ScrHeight, I
-        .byte >(ScrBase + ScrFirstChar + I * ScrollDist)
+        .byte   >(ScrBase + ScrFirstChar + I * ScrollDist)
         .endrep
 
 
 .code
 
 osi_cputfuncs   ScrBase, ScrFirstChar, ScrWidth, ScrHeight, \
-                         ScrollDist, ScrTabLo, ScrTabHi
+                ScrollDist, ScrTabLo, ScrTabHi
+osi_scroll      ScrBase, ScrFirstChar, ScrWidth, ScrHeight, ScrollDist
 osi_screensize  ScrWidth, ScrHeight
 osi_clrscr      ScrBase, ScrRamSize
-
 .endmacro
