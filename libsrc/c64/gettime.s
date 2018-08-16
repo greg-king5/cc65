@@ -1,6 +1,6 @@
 ;
 ; 2009-07-27, Stefan Haubenthal
-; 2013-12-27, Greg King
+; 2014-07-11, Greg King
 ; 2018-08-14, Oliver Schmidt
 ;
 ; int __fastcall__ clock_gettime (clockid_t clk_id, struct timespec *tp);
@@ -15,6 +15,7 @@
 
 
 ;----------------------------------------------------------------------------
+.code
 
 .proc   _clock_gettime
 

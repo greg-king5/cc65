@@ -107,6 +107,7 @@
 #define SID     (*(struct __sid*)0xDA00)
 
 #include <_6526.h>
+#define CIA1    (*(struct __6526*)0xDB00)
 #define CIA2    (*(struct __6526*)0xDC00)
 
 #include <_6551.h>

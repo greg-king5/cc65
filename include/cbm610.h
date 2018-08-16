@@ -2,7 +2,7 @@
 /*                                                                           */
 /*                                 cbm610.h                                  */
 /*                                                                           */
-/*                    CBM610 system specific definitions                     */
+/*                    CBM610 system-specific definitions                     */
 /*                                                                           */
 /*                                                                           */
 /*                                                                           */

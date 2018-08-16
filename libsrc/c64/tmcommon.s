@@ -54,7 +54,7 @@
 .endproc
 
 ;----------------------------------------------------------------------------
-; TM struct with date set to 1970-01-01
+; tm struct with date set to 1970-01-01
 .data
 
 TM:     .word   0               ; tm_sec

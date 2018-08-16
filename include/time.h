@@ -53,7 +53,7 @@ typedef unsigned size_t;
 typedef unsigned long time_t;
 typedef unsigned long clock_t;
 
-/* Structure for broken down time */
+/* Structure for broken-down time */
 struct tm {
     int     tm_sec;
     int     tm_min;
@@ -93,6 +93,22 @@ clock_t _clocks_per_sec (void);
 #  define CLOCKS_PER_SEC        _clocks_per_sec()
 #endif
 #define CLOCK_REALTIME          0
+
+
+
+#ifdef __CBM__
+void __fastcall__ _cbm_setdate (const struct tm* timep);
+/* Copies a broken-down date into an internal structure
+** that is used by time() in some Commodore libraries.
+*/
+void __fastcall__ _cbm_settime (struct tm* timep);
+/* Copies a broken-down time into the CIA time-of-day
+** registers that exist on some Commodore models.
+**
+** Copies a broken-down date into an internal structure
+** that is used by time() on those platforms.
+*/
+#endif
 
 
 
