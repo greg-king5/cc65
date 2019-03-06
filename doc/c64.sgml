@@ -405,9 +405,18 @@ The default drivers, <tt/mouse_stddrv (mouse_static_stddrv)/, point to <tt/c64-1
 </descrip><p>
 
 
-<sect1>RS232 device drivers<p>
+<sect1>RS-232 device drivers<p>
 
 <descrip>
+
+  <tag><tt/c64-std.ser (c64_std_ser)/</tag>
+  Driver for a VIC-1011A-compatible adapter that's plugged into the user-port.
+  Supports only 300, 1200, and 2400 BPS.  Currently, this driver works on only
+  NTSC machines.  SER_IOCTL(0) will disable the NMI interrupts.  SER_IOCTL(1)
+  will re-enable them.
+
+  Currently, this driver handles only eight-bit characters, no parity, and one
+  stop bit.  It can't do hardware handshaking (no flow control).
 
   <tag><tt/c64-swlink.ser (c64_swlink_ser)/</tag>
   Driver for the SwiftLink cartridge. Supports up to 38400 baud, requires hardware

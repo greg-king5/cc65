@@ -10,7 +10,15 @@ VARTAB          := $2D          ; Pointer to start of BASIC variables
 MEMSIZE         := $37          ; Pointer to highest BASIC RAM location (+1)
 TXTPTR          := $7A          ; Pointer into BASIC source code
 STATUS          := $90          ; Kernal I/O completion status
+XSAV            := $97
+DFLTN           := $99          ; Current input device number
+KPTR1           := $9E
 TIME            := $A0          ; 60 HZ clock
+BITCI           := $A8          ; Count of RS-232 input bits
+RIDATA          := $AA          ; RS-232 input bits are shifted into this byte
+BITTS           := $B4          ; Count of RS-232 output bits
+NXTBIT          := $B5          ; Holds next RS-232 bit to send
+RODATA          := $B6          ; RS-232 output bits are shifted out of here
 FNAM_LEN        := $B7          ; Length of filename
 SECADR          := $B9          ; Secondary address
 DEVNUM          := $BA          ; Device number
@@ -25,18 +33,27 @@ SCREEN_PTR      := $D1          ; Pointer to current char in text screen
 CURS_X          := $D3          ; Cursor column
 CURS_Y          := $D6          ; Cursor row
 CRAM_PTR        := $F3          ; Pointer to current char in color RAM
+RIBUF           := $F7          ; Pointer to RS-232 input buffer
+ROBUF           := $F9          ; Pointer to RS-232 output buffer
 FREKZP          := $FB          ; Five unused bytes
 
-BASIC_BUF       := $200         ; Location of command-line
+BASIC_BUF       := $0200        ; Location of command-line
 BASIC_BUF_LEN   = 89            ; Maximum length of command-line
 
-CHARCOLOR       := $286
-CURS_COLOR      := $287         ; Color under the cursor
-PALFLAG         := $2A6         ; $01 = PAL, $00 = NTSC
+CHARCOLOR       := $0286
+CURS_COLOR      := $0287        ; Color under the cursor
+BITNUM          := $0298        ; Number of bits to send in each RS-232 word
+BAUDOF          := $0299        ; Prescaler value used in RS-232 timers
+RIDBE           := $029B        ; Index of end of RS-232 input data
+RIDBS           := $029C        ; Index of start of RS-232 input data
+RODBS           := $029D        ; Index of start of RS-232 output data
+RODBE           := $029E        ; Index of end of RS-232 output data
+ENABL           := $02A1        ; Shadow of CIA2's Interrupt Control Register
+PALFLAG         := $02A6        ; $01 = PAL, $00 = NTSC
 
-KBDREPEAT       := $28a
-KBDREPEATRATE   := $28b
-KBDREPEATDELAY  := $28c
+KBDREPEAT       := $028a
+KBDREPEATRATE   := $028b
+KBDREPEATDELAY  := $028c
 
 ; ---------------------------------------------------------------------------
 ; Vector and other locations
