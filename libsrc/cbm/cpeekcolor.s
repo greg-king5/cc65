@@ -17,6 +17,8 @@
         .include        "c64.inc"
 .elseif .def(__VIC20__)
         .include        "vic20.inc"
+.elseif .def(__CX16__)
+        .include        "cx16.inc"
 .endif
 
 
