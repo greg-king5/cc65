@@ -1,19 +1,21 @@
 ;
 ; 2019-12-22, Greg King
 ;
-; void fastcall vpoke (unsigned char data, unsigned long addr);
+; #define vpoke(addr,data) _vpoke0 (data, addr)
+; void fastcall _vpoke0 (unsigned char data, unsigned long addr);
 ; /* Put a byte into a location in VERA's internal address space.
-; ** (addr is second instead of first for the sake of code efficiency.)
+; ** Use data port zero.
 ; */
 ;
 
-        .export         _vpoke
+        .export         __vpoke0
 
         .import         vaddr0, popa
         .include        "cx16.inc"
 
 
-_vpoke: jsr     vaddr0          ; put VERA's address
+__vpoke0:
+        jsr     vaddr0          ; put VERA's address
         jsr     popa
         sta     VERA::DATA0     ; write data to VERA port zero
         rts

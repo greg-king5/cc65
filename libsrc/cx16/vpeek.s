@@ -2,7 +2,9 @@
 ; 2019-12-22, Greg King
 ;
 ; unsigned char fastcall vpeek (unsigned long addr);
-; /* Get a byte from a location in VERA's internal address space. */
+; /* Get a byte from a location in VERA's internal address space.
+; ** Use data port zero.
+; */
 ;
 
         .export         _vpeek

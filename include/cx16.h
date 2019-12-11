@@ -364,16 +364,19 @@ unsigned char __fastcall__ vera_sprites_enable (unsigned char mode);
 
 signed char __fastcall__ videomode (signed char mode);
 /* Set the video mode, return the old mode.
-** Return -1 if Mode isn't valid.
+** Return -1 if mode isn't valid.
 ** Call with one of the VIDEOMODE_xx constants.
 */
 
 unsigned char __fastcall__ vpeek (unsigned long addr);
-/* Get a byte from a location in VERA's internal address space. */
+/* Get a byte from a location in VERA's internal address space.
+** Use data port zero.
+*/
 
-void __fastcall__ vpoke (unsigned char data, unsigned long addr);
+#define vpoke(addr,data) _vpoke0 (data, addr)
+void __fastcall__ _vpoke0 (unsigned char data, unsigned long addr);
 /* Put a byte into a location in VERA's internal address space.
-** (addr is second instead of first for the sake of code efficiency.)
+** Use data port zero.
 */
 
 
