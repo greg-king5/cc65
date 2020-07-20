@@ -3962,7 +3962,7 @@ See: <tt><ref id=".ASCIIZ" name=".ASCIIZ"></tt>,<tt><ref id=".BYTE" name=".BYTE"
   Switch the CPU instruction set. The command is followed by a string that
   specifies the CPU. Possible values are those that can also be supplied to
   the <tt><ref id="option--cpu" name="--cpu"></tt> command line option,
-  namely: 6502, 6502X, 6502DTV, 65SC02, 65C02, 65816, 4510 and HuC6280.
+  namely: 6502, 6502X, 6502DTV, 65SC02, 65C02, 65816, 4510, and HuC6280.
 
   See: <tt><ref id=".CPU" name=".CPU"></tt>,
        <tt><ref id=".IFP02" name=".IFP02"></tt>,
@@ -3975,6 +3975,13 @@ See: <tt><ref id=".ASCIIZ" name=".ASCIIZ"></tt>,<tt><ref id=".BYTE" name=".BYTE"
        <tt><ref id=".P4510" name=".P4510"></tt>,
        <tt><ref id=".PC02" name=".PC02"></tt>,
        <tt><ref id=".PSC02" name=".PSC02"></tt>
+
+
+<sect1><tt/.SETDP/<label id=".SETDP"><p>
+
+  Tells ca65 what address has been loaded into the 65816's direct-page
+  register.  The command is followed by a constant expression that gives the
+  current location of the direct page.
 
 
 <sect1><tt>.SMART</tt><label id=".SMART"><p>

@@ -50,6 +50,9 @@
 
 
 
+/* Starting address of the direct page */
+extern unsigned DPage;
+
 /* Constants for the addressing mode. If an opcode is available in zero page
 ** and absolut adressing mode, both bits are set. When checking for valid
 ** modes, the zeropage bit is checked first. Similar, the implicit bit is set
@@ -94,7 +97,7 @@
 #define AM65_SET_ABS    (AM65_ABS | AM65_ABS_X)
 
 /* Bitmask for all ZP operations */
-#define AM65_ALL_ZP     (AM65_DIR | AM65_DIR_X | AM65_DIR_Y | AM65_DIR_IND | AM65_DIR_X_IND)
+#define AM65_ALL_ZP     (AM65_SET_ZP | AM65_DIR_IND_Y | AM65_DIR_IND_LONG | AM65_DIR_IND_LONG_Y)
 
 /* Bitmask for all ABS operations */
 #define AM65_ALL_ABS    (AM65_ABS | AM65_ABS_X | AM65_ABS_Y | AM65_ABS_IND | AM65_ABS_X_IND)

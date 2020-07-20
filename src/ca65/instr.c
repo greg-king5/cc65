@@ -128,6 +128,9 @@ static void PutRTS (const InsDesc* Ins attribute ((unused)));
 static void PutAll (const InsDesc* Ins);
 /* Handle all other instructions */
 
+static void PutBRK (const InsDesc* Ins);
+/* Handle the 65816 BRK and COP instructions */
+
 static void Put4510 (const InsDesc* Ins);
 /* Handle instructions of 4510 not matching any EATab */
 
@@ -144,6 +147,9 @@ static void PutSweet16Branch (const InsDesc* Ins);
 /*****************************************************************************/
 
 
+
+/* Starting address of the direct page */
+unsigned DPage = 0x0000;
 
 /* Empty instruction table */
 static const struct {
@@ -735,7 +741,7 @@ static const struct {
         { "BNE",  0x0020000, 0xd0, 0, PutPCRel8 },
         { "BPL",  0x0020000, 0x10, 0, PutPCRel8 },
         { "BRA",  0x0020000, 0x80, 0, PutPCRel8 },
-        { "BRK",  0x0000005, 0x00, 6, PutAll },
+        { "BRK",  0x0000005, 0x00, 6, PutBRK },
         { "BRL",  0x0040000, 0x82, 0, PutPCRel16 },
         { "BVC",  0x0020000, 0x50, 0, PutPCRel8 },
         { "BVS",  0x0020000, 0x70, 0, PutPCRel8 },
@@ -744,7 +750,7 @@ static const struct {
         { "CLI",  0x0000001, 0x58, 0, PutAll },
         { "CLV",  0x0000001, 0xb8, 0, PutAll },
         { "CMP",  0x0b8f6fc, 0xc0, 0, PutAll },
-        { "COP",  0x0000004, 0x02, 6, PutAll },
+        { "COP",  0x0000004, 0x02, 6, PutBRK },
         { "CPA",  0x0b8f6fc, 0xc0, 0, PutAll },   /* == CMP */
         { "CPX",  0x0c0000c, 0xe0, 1, PutAll },
         { "CPY",  0x0c0000c, 0xc0, 1, PutAll },
@@ -1184,9 +1190,9 @@ static int EvalEA (const InsDesc* Ins, EffAddr* A)
     */
     if (A->Expr) {
         ExprDesc ED;
-        ED_Init (&ED);
 
         /* Study the expression */
+        ED_Init (&ED);
         StudyExpr (A->Expr, &ED);
 
         /* Simplify it if possible */
@@ -1219,15 +1225,47 @@ static int EvalEA (const InsDesc* Ins, EffAddr* A)
             }
         }
 
+        /* If the location of the direct-page might change the operand, then
+        ** handle direct-page addresses and remapped direct-page addresses
+        ** specially.
+        */
+        if (DPage != 0x0000) {
+            int IsConst = ED_IsConst (&ED);
+
+            /* Direct-page addresses might not point into the current direct
+            ** page.  Use absolute-address modes.  If the direct page overlaps
+            ** the zero page, then some direct-page addresses will point into
+            ** the current direct page.  They will be fixed later.
+            */
+            if ((IsConst || CPU == CPU_65816) && ED.AddrSize == ADDR_SIZE_ZP) {
+                ++ED.AddrSize;
+            }
+
+            /* If the expression is constant, the instruction allows direct-page
+            ** addressing, and the address is within the remapped direct page,
+            ** then map that address, and keep the zero-page addressing modes.
+            ** Note that the direct page wraps around within the first 64K
+            ** bank.
+            */
+            if (IsConst && (A->AddrModeSet & AM65_ALL_ZP) != 0) {
+                long Val = (ED.Val - (long)DPage) & 0xFFFF;
+
+                if (IsByteRange (Val)) {
+                    A->Expr->V.IVal = Val;
+                    ED.AddrSize = ADDR_SIZE_ZP;
+                }
+            }
+        }
+
         /* Check the size */
         switch (ED.AddrSize) {
 
             case ADDR_SIZE_ABS:
-                A->AddrModeSet &= ~AM65_SET_ZP;
+                A->AddrModeSet &= ~AM65_ALL_ZP;
                 break;
 
             case ADDR_SIZE_FAR:
-                A->AddrModeSet &= ~(AM65_SET_ZP | AM65_SET_ABS);
+                A->AddrModeSet &= ~(AM65_ALL_ZP | AM65_ALL_ABS);
                 break;
         }
 
@@ -1435,9 +1473,28 @@ static void PutBlockTransfer (const InsDesc* Ins)
 static void PutBitBranch (const InsDesc* Ins)
 /* Handle 65C02 branch on bit condition */
 {
+    long Val;
+    /* Read the zero-page expression */
+    ExprNode* Expr = Expression ();
+
+    /* If the location of the direct-page might change the operand, the
+    ** expression is constant, and the address is within the remapped
+    ** direct page, then map that address.  Note that the direct page
+    ** wraps around within the first 64K bank.
+    */
+    if (DPage != 0x0000 && IsConstExpr (Expr, &Val)) {
+        Val = (Val - (long)DPage) & 0xFFFF;
+        if (IsByteRange (Val)) {
+            FreeExpr (Expr);
+            Expr = GenLiteralExpr (Val);
+        }
+    }
+
     Emit0 (Ins->BaseCode);
-    EmitByte (Expression ());
+    EmitByte (Expr);
     ConsumeComma ();
+
+    /* Read and process the branch target expression */
     EmitSigned (GenBranchExpr (1), 1);
 }
 
@@ -1655,6 +1712,27 @@ static void PutAll (const InsDesc* Ins)
 
 
 
+static void PutBRK (const InsDesc* Ins)
+/* Handle the 65816 BRK and COP instructions */
+{
+    /* "Implied" and "immediate" are the only addressing modes that the BRK and
+    ** COP instructions have.  Therefore, we don't need to use the "#" prefix
+    ** to say, "this is an immediate mode operand".  But, in order to simplify
+    ** ca65's code, only "#" will trigger that mode in the parser.  Therefore,
+    ** BRK and COP pretend to be direct-page instructions.  The .SETDP
+    ** directive must not affect them; it's disabled while they're handled.
+    */
+    unsigned DP = DPage;
+
+    /* Don't change a direct-page operand */
+    DPage = 0x0000;
+
+    PutAll (Ins);
+    DPage = DP;
+}
+
+
+
 static void Put4510 (const InsDesc* Ins)
 /* Handle all other instructions, with modifications for 4510 */
 {
@@ -1787,6 +1865,11 @@ void SetCPU (cpu_t NewCPU)
     if (NewCPU != CPU_UNKNOWN && InsTabs[NewCPU]) {
         CPU = NewCPU;
         InsTab = InsTabs[CPU];
+
+        /* The PC-Engine's CPU sends zero-page addressing to page $20. */
+        if (CPU == CPU_HUC6280) {
+            DPage = 0x2000;
+        }
     } else {
         Error ("CPU not supported");
     }

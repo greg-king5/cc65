@@ -282,6 +282,7 @@ struct DotKeyword {
     { ".SEGMENT",       TOK_SEGMENT             },
     { ".SET",           TOK_SET                 },
     { ".SETCPU",        TOK_SETCPU              },
+    { ".SETDP",         TOK_SETDP               },
     { ".SHL",           TOK_SHL                 },
     { ".SHR",           TOK_SHR                 },
     { ".SIZEOF",        TOK_SIZEOF              },

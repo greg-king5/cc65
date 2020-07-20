@@ -1886,6 +1886,20 @@ static void DoSetCPU (void)
 
 
 
+static void DoSetDP (void)
+/* Choose the direct page address */
+{
+    long DP = ConstExpression ();
+
+    if ((DP & ~0xFFFFL) != 0) {
+        Error ("16-bit range error");
+        return;
+    }
+    DPage = (unsigned)DP;
+}
+
+
+
 static void DoSmart (void)
 /* Smart mode on/off */
 {
@@ -2175,6 +2189,7 @@ static CtrlDesc CtrlCmdTab [] = {
     { ccNone,           DoSegment       },
     { ccNone,           DoUnexpected    },      /* .SET */
     { ccNone,           DoSetCPU        },
+    { ccNone,           DoSetDP         },
     { ccNone,           DoUnexpected    },      /* .SIZEOF */
     { ccNone,           DoSmart         },
     { ccNone,           DoUnexpected    },      /* .SPRINTF */
