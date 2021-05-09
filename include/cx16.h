@@ -224,6 +224,35 @@ enum {
 
 /* Define hardware. */
 
+/* Kernal pseudo-registers */
+#define REG(num) union { \
+    unsigned int r##num; \
+    struct { \
+        unsigned char r##num##L; \
+        unsigned char r##num##H; \
+    }; \
+};
+struct __cx_reg {
+    REG(0)
+    REG(1)
+    REG(2)
+    REG(3)
+    REG(4)
+    REG(5)
+    REG(6)
+    REG(7)
+    REG(8)
+    REG(9)
+    REG(10)
+    REG(11)
+    REG(12)
+    REG(13)
+    REG(14)
+    REG(15)
+};
+#undef REG
+#define CX_REG  (*(struct __cx_reg *)0x0002)
+
 /* A structure with the Video Enhanced Retro Adapter's external registers */
 struct __vera {
     unsigned short      address;        /* Address for data ports */
@@ -311,7 +340,7 @@ extern void cx320p1_tgi[];              /* Referenced by tgi_static_stddrv[] */
 
 
 /*****************************************************************************/
-/*                                   Code                                    */
+/*                               Machine info                                */
 /*****************************************************************************/
 
 
@@ -352,6 +381,89 @@ signed char __fastcall__ videomode (signed char mode);
 ** Return -1 if Mode isn't valid.
 ** Call with one of the VIDEOMODE_xx constants.
 */
+
+
+
+/*****************************************************************************/
+/*                           CX16 Kernal functions                           */
+/*****************************************************************************/
+
+
+
+void cx_k_FB_init (void);
+
+unsigned char __fastcall__ cx_k_FB_get_info (unsigned int* width,
+                                             unsigned int* height);
+
+void __fastcall__ cx_k_FB_set_palette (unsigned char count, unsigned char index,
+                                       const void* palette);
+
+void __fastcall__ cx_k_FB_cursor_position (unsigned int x, unsigned int y);
+
+void cx_k_FB_cursor_next_line (void);
+/* [Re-uses CX_REG.r0 -- usually was set by cx_k_FB_cursor_position().] */
+
+unsigned char cx_k_FB_get_pixel (void);
+
+void __fastcall__ cx_k_FB_set_pixel (unsigned char color);
+
+void __fastcall__ cx_k_FB_set_pixels (const unsigned char pixels[]);
+
+void __fastcall__ cx_k_FB_set_8_pixels (unsigned char pattern,
+                                        unsigned char color);
+
+void __fastcall__ cx_k_FB_fill_pixels (unsigned char color, unsigned int count,
+                                       unsigned int step);
+
+void __fastcall__ cx_k_FB_filter_pixels (unsigned char (* func)(unsigned char color),
+                                         unsigned int count);
+
+void __fastcall__ cx_k_FB_move_pixels (unsigned int start_x, unsigned int start_y,
+                                       unsigned int to_x, unsigned int to_y,
+                                       unsigned int count);
+
+void __fastcall__ cx_k_GRAPH_init (const void* driver);
+
+
+
+/*****************************************************************************/
+/*                       BASIC-like file I/O functions                       */
+/*****************************************************************************/
+
+
+
+unsigned long __fastcall__ cx_load (const char* name, unsigned char device,
+                                    unsigned long addr);
+/* Loads file "name", from given device, to given address -- or, to the load
+** address of the file if addr is zero (like load"name",8,1 in BASIC).  addr
+** must be three bytes.  The low two bytes are a RAM address.  The third byte
+** is a RAM bank number when the RAM address is between 0xA000 and 0xBFFF;
+** else, it is ignored.  When addr is zero, the current bank number is used.
+** The current RAM bank number is preserved.
+** Returns the address, including the bank number,
+** that's one byte after the end of the loaded file.
+** Sets "_oserror" to a CBM result code (see <cbm.h>).
+**
+** NOTE: Currently, only the emulator supports crossing the RAM bank boundary!
+*/
+
+#if 0
+/* Not yet implemented. */
+unsigned long __fastcall__ cx_save (const char* name, unsigned char device,
+                                    unsigned long addr, unsigned long size);
+#endif
+
+unsigned long __fastcall__ vera_load (const char* name, unsigned char device,
+                                      unsigned long addr);
+/* Loads file "name", from device, to given VRAM address -- or, to the load
+** address of the file if addr is 0xFFFFFF.  addr must be 17 bits wide.
+** When addr is 0xFFFFFF, the current address bit 16 isn't changed.
+** Returns the address after the end of the loaded file.
+** Sets "_oserror" to a CBM result code (see <cbm.h>).
+*/
+
+unsigned long __fastcall__ vera_save (const char* name, unsigned char device,
+                                      unsigned long addr, unsigned long size);
 
 unsigned char __fastcall__ vpeek (unsigned long addr);
 /* Get a byte from a location in VERA's internal address space. */
