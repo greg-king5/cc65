@@ -32,17 +32,16 @@
 **  Bit     Description
 ** -------------------------------------------
 **  15      Pause bit.
-**  12-14   Octave
-**  8-11    Tone (index into frequency table)
+**  14-12   Octave
+**  11-8    Pitch (index into frequency table)
 **  7       Unused. Was thought as a control bit in the original version to
-**          change SID parameters, but this was never implemented.
-**  0-6     Length of the tone in ticks.
-**
+**          change SID parameters, but that never was implemented.
+**  6-0     Length of the tone in ticks.
 */
 
 
 
-static unsigned Voice1 [] = {
+static const unsigned Voice1[] = {
     0x5708,0x8004,0x5204,0x5708,0x8004,0x5204,0x5704,0x5204,0x5704,0x5B04,
     0x6208,0x8008,0x6008,0x8004,0x5904,0x6008,0x8004,0x5904,0x6004,0x5904,
     0x5604,0x5904,0x5208,0x8008,0x5704,0x8004,0x570C,0x5B01,0x5B01,0x5B01,
@@ -396,7 +395,7 @@ static unsigned Voice1 [] = {
     0x0000
 };
 
-static unsigned Voice2 [] = {
+static const unsigned Voice2[] = {
     0x4708,0x8004,0x4204,0x4708,0x8004,0x4204,0x4704,0x4204,0x4704,0x4B04,
     0x5208,0x8008,0x5008,0x8004,0x4904,0x5008,0x8004,0x4904,0x5004,0x4904,
     0x4604,0x4904,0x4208,0x8008,0x4704,0x4704,0x4704,0x4704,0x4704,0x4704,
@@ -616,7 +615,7 @@ static unsigned Voice2 [] = {
     0x0000
 };
 
-static unsigned Voice3 [] = {
+static const unsigned Voice3[] = {
     0x3708,0x8004,0x3204,0x3708,0x8004,0x3204,0x3704,0x3204,0x3704,0x3B04,
     0x3208,0x8008,0x4008,0x8004,0x3904,0x4008,0x8004,0x3904,0x4004,0x3904,
     0x3604,0x4904,0x4208,0x8008,0x3704,0x3704,0x3704,0x3704,0x3704,0x3704,
@@ -859,7 +858,7 @@ static unsigned Voice3 [] = {
 
 
 #if defined(__C64__) || defined(__CBM510__)
-static unsigned long FreqTab [12] = {
+static const unsigned long FreqTab[12] = {
 #ifndef NTSC
     /* PAL */
     0x008B38, 0x009381, 0x009C45, 0x00A590, 0x00AF68, 0x00B9D6,
@@ -871,12 +870,12 @@ static unsigned long FreqTab [12] = {
 #endif
 };
 #elif defined(__C128__)
-static unsigned long FreqTab [12] = {
+static const unsigned long FreqTab[12] = {
     0x00892B, 0x009153, 0x0099F7, 0x00A31E, 0x00ACD2, 0x00B718,
     0x00C1FD, 0x00CD85, 0x00D9BD, 0x00E6B0, 0x00F467, 0x0102F0,
 };
 #elif defined(__CBM610__)
-static unsigned long FreqTab [12] = {
+static const unsigned long FreqTab[12] = {
     0x004495, 0x0048AA, 0x004CFB, 0x00518F, 0x005669, 0x005B8C,
     0x0060FE, 0x0066C3, 0x006CDE, 0x007358, 0x007A34, 0x008178,
 };
@@ -885,27 +884,27 @@ static unsigned long FreqTab [12] = {
 
 
 typedef struct {
-    unsigned char       DoneMask;       /* Set this if we're done */
-    unsigned char       Trigger;        /* Trigger value */
+    unsigned char const DoneMask;       /* Put this into Done when finished */
+    unsigned char const Trigger;        /* Waveform value and trigger bit */
     unsigned char       Ticks;          /* Ticks for this tone */
     unsigned            Freq;           /* Actual frequency value */
-    unsigned*           Data;           /* Pointer to data */
-    struct __sid_voice* Voice;          /* Pointer to sid registers */
+    unsigned     const* Data;           /* Pointer to tune data */
+    struct __sid_voice* Voice;          /* Pointer to SID registers */
 } VoiceCtrl;
 
 /* Control structs for all three voices */
 static VoiceCtrl V1 = {
-    0x01, 0x11, 0, 0, Voice1, &SID.v1
+    0b00000001, 0x11, 0, 0, Voice1, &SID.v1  /* Triangle waveform */
 };
 static VoiceCtrl V2 = {
-    0x02, 0x41, 0, 0, Voice2, &SID.v2
+    0b00000010, 0x41, 0, 0, Voice2, &SID.v2  /* Square waveform */
 };
 static VoiceCtrl V3 = {
-    0x04, 0x11, 0, 0, Voice3, &SID.v3
+    0b00000100, 0x11, 0, 0, Voice3, &SID.v3  /* Triangle waveform */
 };
 
 /* Pointers to the structs for easy reference */
-static VoiceCtrl* V [3] = {
+static VoiceCtrl* const V[3] = {
     &V1, &V2, &V3
 };
 
@@ -915,13 +914,13 @@ static unsigned char XSize, YSize;
 /* Variable that contains the time of the next clock tick to play a note */
 static unsigned char NextClock;
 
-/* Start- and runtime */
+/* Start time */
 static clock_t StartTime;
 
-/* Number of ticks for each tone */
-#define TICKS_PER_TONE  4
+/* Number of jiffies for each tune tick. (15 ticks per second) */
+#define CLOCKS_PER_TICK 4
 
-/* Done flag. Contains one bit for each voice. Will contain 0x07 if all
+/* Done flag. Contains one bit for each voice. Will contain 0b00000111 when all
 ** voices have finished playing.
 */
 static unsigned char Done;
@@ -949,28 +948,28 @@ static void MakeNiceScreen (void)
 {
     typedef struct {
         unsigned char   Y;
-        char*           Msg;
+        const    char*  Msg;
     } TextDesc;
-    static TextDesc Text [] = {
-        {   2, "Wolfgang Amadeus Mozart"        },
-        {   4, "\"Eine kleine Nachtmusik\""     },
-        {   5, "(KV 525)"                       },
-        {   9, "Ported to the SID in 1987 by" },
-        {  11, "Joachim von Bassewitz"          },
-        {  12, "(joachim@von-bassewitz.de)"     },
-        {  13, "and"                            },
-        {  14, "Ullrich von Bassewitz"          },
-        {  15, "(ullrich@von-bassewitz.de)"     },
-        {  18, "C Implementation by"            },
-        {  19, "Ullrich von Bassewitz"          },
-        {  23, "Press any key to quit..."       },
+    static const TextDesc Text[] = {
+        {  2, "Wolfgang Amadeus Mozart"         },
+        {  4, "\"Eine kleine Nachtmusik\""      },
+        {  5, "(KV 525)"                        },
+        {  9, "Ported to the SID in 1987 by"    },
+        { 11, "Joachim von Bassewitz"           },
+        { 12, "(joachim@von-bassewitz.de)"      },
+        { 13, "and"                             },
+        { 14, "Ullrich von Bassewitz"           },
+        { 15, "(ullrich@von-bassewitz.de)"      },
+        { 18, "C Implementation by"             },
+        { 19, "Ullrich von Bassewitz"           },
+        { 23, "Press any key to quit..."        },
     };
 
     register const TextDesc* T;
     unsigned char I;
     unsigned char X;
 
-    /* Clear the screen hide the cursor, set colors */
+    /* Clear the screen, hide the cursor, set colors */
 #ifdef __CBM610__
     (void)textcolor (COLOR_WHITE);
 #else
@@ -1002,7 +1001,7 @@ static void MakeNiceScreen (void)
     MakeTeeLine (22);
 
     /* Write something into the frame */
-    for (I = 0, T = Text; I < sizeof (Text) / sizeof (Text [0]); ++I) {
+    for (I = 0, T = Text; I < sizeof (Text) / sizeof (Text[0]); ++I) {
         X = (XSize - strlen (T->Msg)) / 2;
         cputsxy (X, T->Y, T->Msg);
         ++T;
@@ -1019,7 +1018,7 @@ static void TimeSync (void)
     do {
         Clock = clock ();
     } while (Clock != NextClock);
-    NextClock = Clock + TICKS_PER_TONE;
+    NextClock = Clock + CLOCKS_PER_TICK;
 }
 
 
@@ -1032,7 +1031,7 @@ static void DisplayTime (void)
     unsigned Min = Time / 60;
 
     gotoxy (1, 0);
-    cprintf ("%02d:%02d", Min, Sec);
+    cprintf ("%02u:%02u", Min, Sec);
 }
 
 
@@ -1050,7 +1049,7 @@ static void DisplayTime (void)
 
 
 
-int main (void)
+void main (void)
 {
     unsigned char       I;
     unsigned char       Tone;
@@ -1084,12 +1083,11 @@ int main (void)
 
     /* Sync the clock */
     NextClock = StartTime = clock ();
-    NextClock += TICKS_PER_TONE;
+    NextClock += CLOCKS_PER_TICK;
 
     /* Play each voice until all three are done */
-    while (Done != 0x07) {
-
-        /* Display the time in the lower left corner */
+    while (Done != 0b00000111) {
+        /* Display the time in the upper left corner */
         DisplayTime ();
 
         /* Wait for the next run */
@@ -1108,9 +1106,8 @@ int main (void)
 
         /* Play all three voices */
         for (I = 0; I < 3; ++I) {
-
             /* Get a pointer to this voice */
-            VC = V [I];
+            VC = V[I];
             Voice = VC->Voice;
 
             /* Is this voice done? */
@@ -1134,14 +1131,14 @@ int main (void)
 
                 /* Check if this is a tone or a pause */
                 if (Val & 0x8000) {
-                    /* This is a pause. Remember it and shut off the SID */
+                    /* This is a pause. Remember it, and shut off the SID */
                     outb (&Voice->ctrl, VC->Trigger & 0xFE);
                 } else {
                     /* This is a tone. Extract the attributes. */
                     Tone = (Val >> 8) & 0x0F;
                     Octave = ((Val >> 12) & 0x07) ^ 0x07;
                     /* Calculate the frequency */
-                    VC->Freq = FreqTab [Tone] >> Octave;
+                    VC->Freq = FreqTab[Tone] >> Octave;
                     /* Set the frequency */
                     outw (&Voice->freq, VC->Freq);
                     /* Start the tone */
@@ -1149,7 +1146,7 @@ int main (void)
                 }
             } else {
                 /* Decrement the ticks. If this is the last tick of a tone,
-                ** reset bit 0 of the trigger value and write it back to the
+                ** reset bit 0 of the trigger value, and write it back to the
                 ** SID to start the release phase.
                 */
                 if (--(VC->Ticks) == 0) {
@@ -1159,7 +1156,7 @@ int main (void)
         }
     }
 
-    /* Reset the SID */
+    /* Make the SID be silent */
     outb (&SID.v1.ctrl, 0x00);
     outb (&SID.v2.ctrl, 0x00);
     outb (&SID.v3.ctrl, 0x00);
@@ -1171,10 +1168,4 @@ int main (void)
     if (kbhit ()) {
         cgetc ();
     }
-
-    /* Done */
-    return 0;
 }
-
-
-
