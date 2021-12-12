@@ -12,7 +12,7 @@
 
 
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <conio.h>
@@ -887,20 +887,19 @@ typedef struct {
     unsigned char const DoneMask;       /* Put this into Done when finished */
     unsigned char const Trigger;        /* Waveform value and trigger bit */
     unsigned char       Ticks;          /* Ticks for this tone */
-    unsigned            Freq;           /* Actual frequency value */
     unsigned     const* Data;           /* Pointer to tune data */
     struct __sid_voice* Voice;          /* Pointer to SID registers */
 } VoiceCtrl;
 
 /* Control structs for all three voices */
 static VoiceCtrl V1 = {
-    0b00000001, 0x11, 0, 0, Voice1, &SID.v1  /* Triangle waveform */
+    0b00000001, 0x11, 0, Voice1, &SID.v1  /* Triangle waveform */
 };
 static VoiceCtrl V2 = {
-    0b00000010, 0x41, 0, 0, Voice2, &SID.v2  /* Square waveform */
+    0b00000010, 0x41, 0, Voice2, &SID.v2  /* Square waveform */
 };
 static VoiceCtrl V3 = {
-    0b00000100, 0x11, 0, 0, Voice3, &SID.v3  /* Triangle waveform */
+    0b00000100, 0x11, 0, Voice3, &SID.v3  /* Triangle waveform */
 };
 
 /* Pointers to the structs for easy reference */
@@ -915,7 +914,7 @@ static unsigned char XSize, YSize;
 static unsigned char NextClock;
 
 /* Start time */
-static clock_t StartTime;
+static unsigned StartTime;
 
 /* Number of jiffies for each tune tick. (15 ticks per second) */
 #define CLOCKS_PER_TICK 4
@@ -965,9 +964,8 @@ static void MakeNiceScreen (void)
         { 23, "Press any key to quit..."        },
     };
 
-    register const TextDesc* T;
-    unsigned char I;
-    unsigned char X;
+    register const TextDesc* T = Text;
+    unsigned char I = 0;
 
     /* Clear the screen, hide the cursor, set colors */
 #ifdef __CBM610__
@@ -1001,9 +999,8 @@ static void MakeNiceScreen (void)
     MakeTeeLine (22);
 
     /* Write something into the frame */
-    for (I = 0, T = Text; I < sizeof (Text) / sizeof (Text[0]); ++I) {
-        X = (XSize - strlen (T->Msg)) / 2;
-        cputsxy (X, T->Y, T->Msg);
+    for (; I < sizeof (Text) / sizeof (Text[0]); ++I) {
+        cputsxy ((XSize - (unsigned char)strlen (T->Msg)) / 2, T->Y, T->Msg);
         ++T;
     }
 }
@@ -1013,12 +1010,8 @@ static void MakeNiceScreen (void)
 static void TimeSync (void)
 /* Sync the time for the next tone */
 {
-    static unsigned char Clock;
-
-    do {
-        Clock = clock ();
-    } while (Clock != NextClock);
-    NextClock = Clock + CLOCKS_PER_TICK;
+    NextClock += CLOCKS_PER_TICK;
+    do { } while ((unsigned char)clock () != NextClock);
 }
 
 
@@ -1026,12 +1019,11 @@ static void TimeSync (void)
 static void DisplayTime (void)
 /* Display the running time */
 {
-    clock_t Time = (clock () - StartTime) / CLOCKS_PER_SEC;
-    unsigned Sec = Time % 60;
-    unsigned Min = Time / 60;
+    div_t Time;
 
-    gotoxy (1, 0);
-    cprintf ("%02u:%02u", Min, Sec);
+    Time = div (((unsigned)clock () - StartTime) / CLOCKS_PER_SEC, 60);
+    gotoxy (1, YSize - 2);
+    cprintf ("%d:%02d\n", Time.quot, Time.rem);
 }
 
 
@@ -1083,15 +1075,11 @@ void main (void)
 
     /* Sync the clock */
     NextClock = StartTime = clock ();
-    NextClock += CLOCKS_PER_TICK;
 
     /* Play each voice until all three are done */
-    while (Done != 0b00000111) {
-        /* Display the time in the upper left corner */
+    do {
+        /* Display the time in the lower left corner */
         DisplayTime ();
-
-        /* Wait for the next run */
-        TimeSync ();
 
         /* Check for a key */
         if (kbhit ()) {
@@ -1103,6 +1091,9 @@ void main (void)
                 break;
             }
         }
+
+        /* Wait for the next run */
+        TimeSync ();
 
         /* Play all three voices */
         for (I = 0; I < 3; ++I) {
@@ -1137,10 +1128,8 @@ void main (void)
                     /* This is a tone. Extract the attributes. */
                     Tone = (Val >> 8) & 0x0F;
                     Octave = ((Val >> 12) & 0x07) ^ 0x07;
-                    /* Calculate the frequency */
-                    VC->Freq = FreqTab[Tone] >> Octave;
                     /* Set the frequency */
-                    outw (&Voice->freq, VC->Freq);
+                    outw (&Voice->freq, FreqTab[Tone] >> Octave);
                     /* Start the tone */
                     outb (&Voice->ctrl, VC->Trigger);
                 }
@@ -1154,15 +1143,12 @@ void main (void)
                 }
             }
         }
-    }
+    } while (Done != 0b00000111);
 
-    /* Make the SID be silent */
+    /* Force all tones to stop */
     outb (&SID.v1.ctrl, 0x00);
     outb (&SID.v2.ctrl, 0x00);
     outb (&SID.v3.ctrl, 0x00);
-
-    /* Clear the screen */
-    clrscr ();
 
     /* If we have a character, remove it from the buffer */
     if (kbhit ()) {
